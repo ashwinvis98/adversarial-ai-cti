@@ -18,12 +18,18 @@ correlation across parties who cannot share the prompt itself.
 ## Status
 
 - The digest is implemented as a separate package,
-  [`prompt-semhash`](https://github.com/ashwinvis98/prompt-semhash), so it stays
+  [`promptprint`](https://github.com/ashwinvis98/promptprint), so it stays
   useful outside this project.
-- The **shipping baseline is lexical** (MinHash over word-shingles). It catches
-  copy-paste-and-tweak rewording, not full semantic paraphrase.
-- A **semantic variant** (embedding-derived, quantized digest behind the same compare
-  interface) is a planned direction and remains an open problem.
+- The **default is lexical** (`ppl1`, MinHash over word-shingles). It catches
+  copy-paste-and-tweak rewording, not full semantic paraphrase, and is dependency-free.
+- A **semantic variant** (`pps1`/`pps1c`, an embedding-derived SimHash digest behind the
+  same compare interface) is implemented and evaluated on public data. It recovers the
+  majority of heavily-reworded attacks — better than lexical — but a compact digest
+  trails the raw-embedding ceiling by 11–21 points of recall@1. See
+  [`promptprint` RESULTS](https://github.com/ashwinvis98/promptprint/blob/main/RESULTS.md).
+- Both are **deterministic** (fixed hash + seed; the semantic variant also fixes the
+  embedding model and, for `pps1c`, a shared reference mean), which is what lets
+  independent parties compare digests without a shared service.
 
 ## How it would attach to STIX
 
@@ -33,11 +39,25 @@ similarity relationships between observables whose digests are close. Defining t
 digest as a stable, serialisable property — rather than an ad-hoc offline script — is
 what makes it a shareable correlation mechanism rather than a one-off clustering job.
 
-## Open questions
+## What the evaluation now shows
 
-- What digest length / similarity threshold balances precision and recall on real
-  corpora?
-- Does clustering by digest actually recover known attack families, and where does the
-  lexical baseline fail? (Needs evaluation on a public prompt-attack corpus.)
-- Can a semantic digest be made deterministic and privacy-preserving enough for
-  cross-organisation correlation?
+The evaluation in [`promptprint` RESULTS](https://github.com/ashwinvis98/promptprint/blob/main/RESULTS.md)
+answers several of the original open questions:
+
+- **Redundancy is real.** The lexical digest collapses >half of a public corpus
+  (HackAPrompt) as exact duplicates, plus more as near-duplicates.
+- **Cross-org correlation works on shared source material** — exchanging only digests
+  finds ~4.4x the overlap that exact matching does. A genuinely cross-corpus test (not a
+  split of one corpus) is still outstanding.
+- **The semantic digest is deterministic** and recovers most reworded attacks, but the
+  compact form costs recall versus the full embedding; comparability requires a shared
+  model and reference mean.
+
+## Still open
+
+- Threshold selection is corpus-dependent; the connector defaults (0.7, see its README)
+  are a starting point, not a calibrated value for every feed.
+- The `pps1c` digest string does not yet carry the model / reference-mean identity
+  inline, so centered-digest comparability currently relies on out-of-band agreement.
+- Adversarial robustness: the scheme is public, so a motivated adversary can evade it
+  (word reorder defeats the lexical digest). This is a triage aid, not a security control.

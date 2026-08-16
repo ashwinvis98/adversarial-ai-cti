@@ -5,7 +5,7 @@ Runnable with pytest or directly (`python tests/test_engine.py`).
 
 from datetime import datetime, timezone
 
-from adversarial_ai_cti import EngineConfig, PromptAttackRecord, StixEngine
+from adversarial_ai_cti import PromptAttackRecord, StixEngine
 
 
 def _record(**overrides):

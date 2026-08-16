@@ -16,9 +16,9 @@ then create ``related-to`` relationships to prompts whose digests are close.
 
 from __future__ import annotations
 
-from prompt_semhash import compare, digest
+from promptprint import compare, digest
 
-SOURCE_NAME = "prompt-semhash"
+SOURCE_NAME = "promptprint"
 
 
 def digest_external_reference(value: str) -> dict:
@@ -26,7 +26,7 @@ def digest_external_reference(value: str) -> dict:
     return {
         "source_name": SOURCE_NAME,
         "external_id": digest(value),
-        "description": "prompt-semhash lexical similarity digest (psh1)",
+        "description": "promptprint lexical similarity digest (ppl1)",
     }
 
 
@@ -42,12 +42,18 @@ def find_similar(
     target_value: str,
     candidates,
     threshold: float = 0.7,
+    max_edges: int | None = None,
 ) -> list[tuple[str, float]]:
     """Return ``(candidate_id, score)`` for candidates whose digest is >= *threshold*.
 
     ``candidates`` is an iterable of ``(id, digest_or_none)``. Candidates without a
     stored digest, or whose digest uses a different scheme, are skipped. Results are
     sorted by descending score.
+
+    ``max_edges`` caps how many links a single enrichment may create (the highest-
+    scoring matches win). This bounds edge explosion on dense clusters: without a cap,
+    enriching one member of a family of N near-identical prompts would create N-1 edges
+    every time, giving O(N^2) relationships across the family. ``None`` means no cap.
     """
     target_digest = digest(target_value)
     matches: list[tuple[str, float]] = []
@@ -62,4 +68,6 @@ def find_similar(
         if score >= threshold:
             matches.append((candidate_id, round(score, 4)))
     matches.sort(key=lambda pair: pair[1], reverse=True)
+    if max_edges is not None:
+        matches = matches[:max_edges]
     return matches

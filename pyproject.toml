@@ -9,7 +9,7 @@ description = "Represent adversarial AI activity (prompt injection, jailbreaks) 
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
-authors = [{ name = "ashwinvis98" }]
+authors = [{ name = "ashwinvis98", email = "ashwinvis98@gmail.com" }]
 keywords = ["stix", "cti", "threat-intelligence", "prompt-injection", "llm-security", "opencti", "mitre-atlas"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -31,3 +31,11 @@ where = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]  # line length is owned by the formatter, not the linter
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

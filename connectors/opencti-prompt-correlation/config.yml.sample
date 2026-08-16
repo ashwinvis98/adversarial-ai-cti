@@ -5,7 +5,7 @@ opencti:
 connector:
   id: 'ChangeMe'                       # a UUIDv4 you generate
   type: 'INTERNAL_ENRICHMENT'
-  name: 'Prompt Correlation (prompt-semhash)'
+  name: 'Prompt Correlation (promptprint)'
   scope: 'AI-Prompt'                   # the observable type this connector enriches
   auto: true                           # enrich automatically on ingest
   confidence_level: 60

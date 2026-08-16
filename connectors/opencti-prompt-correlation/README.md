@@ -1,9 +1,9 @@
-# OpenCTI connector: prompt correlation (prompt-semhash)
+# OpenCTI connector: prompt correlation (promptprint)
 
 An OpenCTI **internal-enrichment** connector that makes reworded prompt attacks
 correlate. When an `ai-prompt` observable is enriched, it:
 
-1. computes a [`prompt-semhash`](https://github.com/ashwinvis98/prompt-semhash)
+1. computes a [`promptprint`](https://github.com/ashwinvis98/promptprint)
    similarity digest and stores it on the observable as an external reference;
 2. reads the digests already stored on other `ai-prompt` observables;
 3. creates a `related-to` relationship to each one whose digest is similar enough
@@ -47,10 +47,43 @@ settings:
 | Setting | Env | Default | Meaning |
 |---|---|---|---|
 | threshold | `PROMPT_CORRELATION_THRESHOLD` | `0.7` | minimum digest similarity to link |
-| max candidates | `PROMPT_CORRELATION_MAX_CANDIDATES` | `500` | prompts to compare against |
+| max candidates | `PROMPT_CORRELATION_MAX_CANDIDATES` | `500` | prompts to compare against per enrichment |
+| max edges | `PROMPT_CORRELATION_MAX_EDGES` | `25` | max `related-to` links created per enrichment |
 
 Plus the standard OpenCTI connector variables (`OPENCTI_URL`, `OPENCTI_TOKEN`,
 `CONNECTOR_ID`, `CONNECTOR_SCOPE=AI-Prompt`, etc.).
+
+## Design decisions
+
+These are deliberate choices, not defaults to accept blindly. Tune them for your feed.
+
+- **Threshold (`0.7`).** The digest similarity above which two prompts are linked. On
+  `ppl1` (lexical MinHash) 0.7 corresponds to strong shared phrasing; lower it toward
+  0.5 to catch looser rewording at the cost of false links. Calibrate against your own
+  corpus — see [`promptprint` RESULTS.md](https://github.com/ashwinvis98/promptprint/blob/main/RESULTS.md).
+- **Per-object edge cap (`max_edges = 25`).** Without a cap, enriching one member of a
+  family of *N* near-identical prompts creates *N-1* edges, and doing so for every
+  member is O(N²) relationships — a hairball that helps no one. The cap keeps only the
+  highest-scoring links per enrichment. Raise it if you would rather have complete edges
+  than a bounded graph.
+- **Pairwise links, not a cluster representative.** This connector draws pairwise
+  `related-to` edges between similar observables. It does **not** elect one
+  "representative" prompt per family and link the rest to it. Pairwise is simpler and
+  survives incremental ingest (no representative to re-elect as new variants arrive), at
+  the cost of a denser graph — which is what the edge cap bounds. A representative /
+  clustering model is a reasonable alternative if you want one node per family.
+- **Confidence carries the score.** Each relationship's `confidence` is the digest
+  similarity × 100, so a 0.72 near-match and a 0.99 duplicate are distinguishable in the
+  UI and in filters.
+- **Rollback.** The digest is stored under `source_name = "promptprint"` and every
+  relationship description is prefixed `promptprint similarity`. To undo the connector's
+  effect, delete the `promptprint` external references and the `related-to` relationships
+  carrying that description prefix. Nothing else is mutated.
+
+Comparability caveat: the stored digest is only meaningful to compare against other
+digests produced with the **same scheme and parameters** (and, for the semantic
+`pps1c` variant, the same embedding model and reference mean). Mixed-scheme candidates
+are skipped rather than mis-scored.
 
 ## Run
 
@@ -62,8 +95,8 @@ docker run --rm --env-file .env opencti-prompt-correlation
 ## Tests
 
 ```bash
-# from the repo root, with prompt-semhash and this connector's src on the path
-PYTHONPATH="../prompt-semhash/src:connectors/opencti-prompt-correlation/src" \
+# with promptprint and this connector's src on the path
+PYTHONPATH="../promptprint/src:connectors/opencti-prompt-correlation/src" \
   python connectors/opencti-prompt-correlation/tests/test_enrichment.py
 ```
 

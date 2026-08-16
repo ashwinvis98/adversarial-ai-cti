@@ -56,7 +56,7 @@ metadata in sync. Full rationale in [`docs/SPEC.md`](docs/SPEC.md) §8.
 
 Exact-string observables don't correlate reworded prompts. That gap is handled by a
 separate similarity-digest package,
-[`prompt-semhash`](https://github.com/ashwinvis98/prompt-semhash); design note in
+[`promptprint`](https://github.com/ashwinvis98/promptprint); design note in
 [`docs/correlation-digest.md`](docs/correlation-digest.md). A reference OpenCTI
 enrichment connector that applies it inside a platform — computing the digest on
 ingest and drawing `related-to` links between similar prompts — is in
@@ -86,7 +86,10 @@ adversarial-ai-cti/
 
 - Automated ATLAS/OWASP mapping is word-boundary keyword matching; it leaves ambiguous
   input unmapped rather than guessing.
-- The correlation digest baseline is lexical, not semantic (see the design note).
+- The correlation digest ships a dependency-free **lexical** default (`ppl1`) and an
+  experimental **semantic** variant (`pps1`/`pps1c`); the semantic digest recovers most
+  reworded attacks but trails the raw-embedding ceiling (see the design note and
+  [`promptprint` RESULTS](https://github.com/ashwinvis98/promptprint/blob/main/RESULTS.md)).
 
 ## Prior art and attribution
 

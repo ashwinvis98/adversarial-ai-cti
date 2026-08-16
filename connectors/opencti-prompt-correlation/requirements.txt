@@ -2,4 +2,4 @@
 pycti
 stix2>=3.0.0
 PyYAML>=6.0
-prompt-semhash @ git+https://github.com/ashwinvis98/prompt-semhash.git
+promptprint @ git+https://github.com/ashwinvis98/promptprint.git
