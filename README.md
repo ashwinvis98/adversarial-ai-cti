@@ -77,7 +77,7 @@ adversarial-ai-cti/
 - Not a new sharing format — it uses STIX 2.1 and existing community extensions.
 - Ships code, not a corpus. Bring your own sources.
 
-## Limitations (honest ones)
+## Limitations
 
 - Automated ATLAS/OWASP mapping is word-boundary keyword matching; it leaves ambiguous
   input unmapped rather than guessing.

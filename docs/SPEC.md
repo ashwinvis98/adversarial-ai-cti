@@ -150,25 +150,27 @@ These are emitted as `iopc.<category>` labels (see [§11](#11-label-taxonomy)).
 A single prompt attack produces a small connected graph. The prompt is the hub;
 everything else hangs off it.
 
-```
-                          (source) Identity
-                                │ created_by_ref
-                                ▼
-   Identity(author) ─created_by_ref─► ai-prompt (SCO, the fact)
-        ▲                                  ▲          ▲
-        │ created_by_ref                   │ based-on │ based-on
-        │                          ┌───────┴───┐  ┌───┴────────────┐
-        └──────────────────────────┤ Indicator │  │ Indicator      │
-                                    │ (stix     │  │ (nova pattern) │
-                                    │  pattern) │  │                │
-                                    └─────┬─────┘  └───────┬────────┘
-                             indicates │  │ related-to      │ (Sighting:
-                                       ▼  ▼                 ▼  observed by source)
-                          AttackPattern   File / ThreatActor / Software
-                          (ATLAS, shared)   (optional enrichment)
+```mermaid
+graph TD
+    src["Identity: source"]
+    author["Identity: author"]
+    prompt["ai-prompt SCO<br/>(the fact)"]
+    stix["Indicator<br/>pattern_type: stix"]
+    nova["Indicator<br/>pattern_type: nova"]
+    atlas["Attack Pattern<br/>MITRE ATLAS (shared)"]
+    enrich["File / Threat Actor / Software / Note<br/>(optional enrichment)"]
+
+    author -->|created_by_ref| src
+    prompt -->|created_by_ref| author
+    stix -->|based-on| prompt
+    nova -->|based-on| prompt
+    stix -->|indicates| atlas
+    nova -->|indicates| atlas
+    stix -->|related-to| enrich
 ```
 
-Objects, at a glance:
+The NOVA-pattern indicator additionally gets a `sighting` (observed by the source),
+omitted above for clarity. Objects, at a glance:
 
 | Object | STIX type | Role | Required? |
 |---|---|---|---|
@@ -299,8 +301,8 @@ produce hundreds-of-KB observables that break ingestion.
 
 ## 8. Indicators: the two-indicator design
 
-This is the central design decision of the specification, and the place it diverges
-from the prior art. **State it plainly in any implementation's README.**
+This section describes where this model differs from the prior art: it keeps two
+indicators per prompt, over the same observable.
 
 The prior art evolved through two positions. The first modelling post used a
 STIX-pattern Indicator (`[ai-prompt:value = '...']`). The follow-up argued —

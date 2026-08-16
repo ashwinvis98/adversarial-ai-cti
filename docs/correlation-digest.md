@@ -15,7 +15,7 @@ prompts produce similar digests, so a platform can cluster near-duplicates the w
 alike the underlying prompts are, without re-reading raw text — which also enables
 correlation across parties who cannot share the prompt itself.
 
-## Status and honesty
+## Status
 
 - The digest is implemented as a separate package,
   [`prompt-semhash`](https://github.com/ashwinvis98/prompt-semhash), so it stays
@@ -23,8 +23,7 @@ correlation across parties who cannot share the prompt itself.
 - The **shipping baseline is lexical** (MinHash over word-shingles). It catches
   copy-paste-and-tweak rewording, not full semantic paraphrase.
 - A **semantic variant** (embedding-derived, quantized digest behind the same compare
-  interface) is the intended direction and an **open problem** — this note does not
-  claim it is solved.
+  interface) is a planned direction and remains an open problem.
 
 ## How it would attach to STIX
 
