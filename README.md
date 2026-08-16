@@ -57,7 +57,10 @@ metadata in sync. Full rationale in [`docs/SPEC.md`](docs/SPEC.md) §8.
 Exact-string observables don't correlate reworded prompts. That gap is handled by a
 separate similarity-digest package,
 [`prompt-semhash`](https://github.com/ashwinvis98/prompt-semhash); design note in
-[`docs/correlation-digest.md`](docs/correlation-digest.md).
+[`docs/correlation-digest.md`](docs/correlation-digest.md). A reference OpenCTI
+enrichment connector that applies it inside a platform — computing the digest on
+ingest and drawing `related-to` links between similar prompts — is in
+[`connectors/opencti-prompt-correlation/`](connectors/opencti-prompt-correlation/).
 
 ## Repository layout
 
@@ -67,6 +70,8 @@ adversarial-ai-cti/
 │   ├── SPEC.md               # the STIX 2.1 data model (the contribution)
 │   └── correlation-digest.md # design note for the semantic-correlation digest
 ├── src/adversarial_ai_cti/   # reference implementation
+├── connectors/
+│   └── opencti-prompt-correlation/  # enrichment connector: digest + similarity links
 ├── examples/                 # runnable example (record -> bundle)
 └── tests/                    # mapping and engine tests
 ```

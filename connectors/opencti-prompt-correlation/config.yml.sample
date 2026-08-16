@@ -1,0 +1,16 @@
+opencti:
+  url: 'http://localhost:8080'
+  token: 'ChangeMe'
+
+connector:
+  id: 'ChangeMe'                       # a UUIDv4 you generate
+  type: 'INTERNAL_ENRICHMENT'
+  name: 'Prompt Correlation (prompt-semhash)'
+  scope: 'AI-Prompt'                   # the observable type this connector enriches
+  auto: true                           # enrich automatically on ingest
+  confidence_level: 60
+  log_level: 'info'
+
+prompt_correlation:
+  threshold: 0.7                       # minimum digest similarity to link two prompts
+  max_candidates: 500                  # how many existing prompts to compare against

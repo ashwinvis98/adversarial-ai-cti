@@ -1,0 +1,5 @@
+# Pin pycti to your OpenCTI platform version (see README).
+pycti
+stix2>=3.0.0
+PyYAML>=6.0
+prompt-semhash @ git+https://github.com/ashwinvis98/prompt-semhash.git
