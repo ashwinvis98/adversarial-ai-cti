@@ -2,11 +2,15 @@
 
 On each `ai-prompt` observable it enriches, the connector:
 
-1. computes the promptprint similarity digest and stores it on the observable as an
-   external reference (so it is queryable and re-usable);
+1. computes the promptprint similarity digest and stores it on the observable as the
+   custom property ``x_promptprint_digest`` (a first-class, queryable attribute);
 2. reads the digests already stored on other `ai-prompt` observables;
 3. creates a `related-to` relationship to each one whose digest is similar enough
    (>= a configurable threshold).
+
+Candidate selection is by **recency**: up to ``max_candidates`` most-recently-created
+prompts. Near-duplicates outside that window are not found — a bounded, documented
+recall limit (see the README "Design decisions").
 
 The pure decision logic lives in ``enrichment.py`` and is unit tested. This file wires
 it into OpenCTI via pycti and therefore needs a running OpenCTI to execute. The exact
@@ -19,7 +23,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import yaml
-from enrichment import digest_external_reference, extract_digest, find_similar
+from enrichment import DIGEST_PROPERTY, compute_digest, extract_digest, find_similar
 from pycti import OpenCTIConnectorHelper, get_config_variable
 
 
@@ -58,14 +62,24 @@ class PromptCorrelationConnector:
         )
 
     def _candidate_digests(self, exclude_id: str):
-        """Yield (id, stored_digest) for other ai-prompt observables."""
+        """Yield (id, stored_digest) for other ai-prompt observables.
+
+        Selection is explicit and documented: the ``max_candidates`` most-recently
+        created prompts (``orderBy=created_at`` descending). Recall is therefore bounded
+        to that window — a near-duplicate older than the window is not found. This is a
+        deliberate reference-connector simplification; LSH banding for unbounded recall
+        is noted as future work in the README.
+        """
         others = self.helper.api.stix_cyber_observable.list(
-            types=["AI-Prompt"], first=self.max_candidates
+            types=["AI-Prompt"],
+            first=self.max_candidates,
+            orderBy="created_at",
+            orderMode="desc",
         )
         for obs in others or []:
             if obs["id"] == exclude_id:
                 continue
-            yield obs["id"], extract_digest(obs.get("externalReferences", []))
+            yield obs["id"], extract_digest(obs)
 
     def _process_message(self, data: dict) -> str:
         observable = self.helper.api.stix_cyber_observable.read(id=data["entity_id"])
@@ -78,11 +92,11 @@ class PromptCorrelationConnector:
         if not value:
             return "skip: empty prompt value"
 
-        # 1. store the digest on this observable (idempotent by source_name)
-        if extract_digest(observable.get("externalReferences", [])) is None:
-            ref = self.helper.api.external_reference.create(**digest_external_reference(value))
-            self.helper.api.stix_cyber_observable.add_external_reference(
-                id=observable["id"], external_reference_id=ref["id"]
+        # 1. store the digest as a first-class custom property (idempotent: skip if set)
+        if extract_digest(observable) is None:
+            self.helper.api.stix_cyber_observable.update_field(
+                id=observable["id"],
+                input={"key": DIGEST_PROPERTY, "value": compute_digest(value)},
             )
 
         # 2. compare against digests stored on other prompts
@@ -91,8 +105,8 @@ class PromptCorrelationConnector:
         )
 
         # 3. link the similar ones. Confidence carries the digest similarity (0-100) so an
-        #    analyst can tell a 0.72 near-match from a 0.99 duplicate. Relationships are
-        #    tagged with a stable source_name for rollback (see README "Design decisions").
+        #    analyst can tell a 0.72 near-match from a 0.99 duplicate. Every relationship
+        #    description is prefixed "promptprint similarity" for rollback (see README).
         for candidate_id, score in matches:
             self.helper.api.stix_core_relationship.create(
                 fromId=observable["id"],

@@ -297,6 +297,35 @@ character boundary and note truncation in the description rather than dropping t
 object. Rationale: whole-file corpora (e.g. leaked system prompts) can otherwise
 produce hundreds-of-KB observables that break ingestion.
 
+### 7.5 Similarity digest property (correlation)
+
+An `ai-prompt` observable is keyed on the exact `value`, so a reworded prompt is a
+different observable with no link to the original — a feed of reworded jailbreaks reads
+as many unrelated items. To correlate near-duplicates, a producer MAY attach a
+**similarity digest** as a custom property on the observable:
+
+| Property | Type | Notes |
+|---|---|---|
+| `x_promptprint_digest` | string | A `promptprint` similarity digest of `value`. |
+
+- The digest is a *computed property of the prompt*, so it belongs on the observable as a
+  first-class property — **not** in `external_references`, which are pointers to external
+  sources, not carriers of a computed value.
+- Formats: lexical `ppl1:<num_perm>:<hex>...`; semantic `pps1:<model_id>:<n_bits>:<hex>`
+  (and `pps1c:<model_id>:<ref_id>:<n_bits>:<hex>` centered). See the
+  [`promptprint`](https://github.com/ashwinvis98/promptprint) package. Only digests of the
+  same scheme and parameters — and, for semantic, the same model and reference mean — are
+  comparable; the format encodes those identities so a mismatch fails loudly.
+- A consumer clusters observables whose digests are within a configurable threshold,
+  drawing `related-to` edges. Because the digest is deterministic, two parties produce the
+  same digest for the same prompt and can correlate **without exchanging the raw prompt
+  text** — data minimisation, not a formal privacy guarantee (a digest is derived from,
+  and leaks information about, the prompt).
+- Defining the digest as a stable, serialisable property — rather than an ad-hoc offline
+  script — is what makes cross-instance correlation a property of the shared data model.
+  A reference OpenCTI enrichment connector implementing this is in
+  `connectors/opencti-prompt-correlation/`.
+
 ---
 
 ## 8. Indicators: the two-indicator design
@@ -511,6 +540,12 @@ Namespaced `facet.value`, so a dashboard can select cleanly on any dimension:
 | `source.` | source key | `source.jailbreak_repo` |
 | `owasp-llm.` | OWASP mapping ([§13](#13-owasp-llm-2025-mapping)) | `owasp-llm.LLM01` |
 
+Free-text values (category, threat, tag, model, severity, source) MUST be **case-folded**
+so `Jailbreak` and `jailbreak` collapse to one label rather than proliferating as two.
+Standard identifiers are left in their canonical form (OWASP `LLM01`, not `llm01`). The
+convention is uniform: every label is `namespace.value`, dot-separated, values case-folded
+except canonical IDs.
+
 A producer MAY instead emit **flat** labels (the de-duplicated union of categories,
 threats, and tags) for parity with simpler consumers, but the faceted scheme is
 RECOMMENDED and is what the mapping sections assume.
@@ -536,8 +571,10 @@ encode an organisation name in a shared/public bundle.
 
 ### 11.4 Review-required label
 
-Objects from unvetted sources MUST additionally carry `review-required`
-(see [§14.2](#142-the-review-gate-for-unvetted-sources)).
+Objects from unvetted sources MUST additionally carry `status.review-required`
+(see [§14.2](#142-the-review-gate-for-unvetted-sources)). It is namespaced (`status.`)
+so it follows the same `namespace.value` convention as every other label rather than
+standing alone.
 
 ### 11.5 Where labels go
 
@@ -553,14 +590,26 @@ IoPC records rarely carry ATLAS IDs. A producer maps free-text `threats`,
 `categories`, and `tags` onto ATLAS techniques so each indicator can `indicates` the
 adversary objective it supports. **Mapping is confident-only.**
 
-### 12.1 Matching rule (word-boundary prefix)
+### 12.1 Matching rule (leading word boundary, with a whole-word exception)
 
-For each lowercased taxonomy token, test each keyword with a **word-boundary prefix**
-match: the keyword must begin on a word boundary (`\b<keyword>`). This lets prefix
-keywords work (`hallucinat` → `hallucination`) while preventing short keywords from
-matching mid-word (`dan` matches the token `dan`, not `abundant`; `rag` matches `rag`,
-not `storage`). Naive substring matching MUST NOT be used — it is the primary source
-of false-positive technique mappings.
+For each lowercased taxonomy token, test each keyword with a **leading word-boundary**
+match (`\b<keyword>`). Naive substring matching MUST NOT be used — it is the primary
+source of false-positive technique mappings (`rag` inside `storage`).
+
+A leading-boundary match still matches a keyword that is the **prefix** of a longer word.
+That is deliberate and wanted for morphological variants (`hallucinat` → `hallucination`,
+`injection` → `injections`, `tool` → `tools`). But it is a hazard for short,
+abbreviation-like keywords whose prefix collides with an **unrelated** word: `dan` in
+`dangerous`/`dance`, `rag` in `rage`, `worm` in `wormhole`, `persona` in `personal`.
+Those specific keywords MUST therefore be matched as **whole words** (`\b<keyword>\b`).
+A producer MUST maintain such an exception set and MUST test it (assert that
+`dangerous`/`wormhole`/`personal` map to nothing, while `agentic`/`tools`/`injections`
+still map).
+
+Each mapping SHOULD carry a **method** marker — `explicit` (the record supplied the
+technique ID), `keyword` (a keyword rule matched), or `category-fallback` (§12.4) — so a
+published technique distribution can report how much was inferred versus fell back on the
+coarse category, rather than presenting all mappings as equally certain.
 
 ### 12.2 Technique table
 

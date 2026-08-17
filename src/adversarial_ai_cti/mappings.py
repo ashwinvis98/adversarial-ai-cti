@@ -1,24 +1,53 @@
 """Confident-only mapping from prompt taxonomy to MITRE ATLAS and OWASP LLM (2025).
 
 Records rarely carry technique IDs, so free-text ``threats``/``categories``/``tags``
-are mapped onto techniques by **word-boundary** keyword matching. Word-boundary (not
-naive substring) matching keeps prefix keywords working (``hallucinat`` ->
-``hallucination``) while preventing short keywords from matching mid-word (``dan`` in
-``abundant``, ``rag`` in ``storage``). Unmatched input is left unmapped rather than
-guessed.
+are mapped onto techniques by keyword matching.
 
-ATLAS technique IDs/names are public MITRE data. The OWASP list is pinned to the 2025
-edition; update ``OWASP_LLM`` and this note together if OWASP revises it.
+**Matching semantics.** Keywords match on a leading word boundary (``\\bkeyword``), so a
+keyword also matches its morphological variants — this is deliberate and wanted
+(``injection`` → ``injections``, ``tool`` → ``tools``/``toolkit``, ``hallucinat`` →
+``hallucination``, ``self-replicat`` → ``self-replicating``). It does **not** match a
+keyword mid-word (``dan`` in ``abundant``).
+
+The hazard this leaves is *prefix* collisions, where a short keyword is also the prefix
+of an **unrelated** word (``dan`` in ``dangerous``/``dance``, ``rag`` in ``rage``,
+``worm`` in ``wormhole``, ``persona`` in ``personal``). Those specific abbreviation-like
+keywords are therefore matched as **whole words** (``\\bkeyword\\b``) via
+``_EXACT_KEYWORDS``. Every other keyword keeps prefix semantics.
+
+Each mapping is returned with a ``method`` marker (``"keyword"`` or
+``"category-fallback"``) so a downstream distribution can report how much of it was
+inferred versus fell back on the coarse category. Unmatched input is left unmapped
+rather than guessed.
+
+ATLAS technique IDs/names are public MITRE data. The 14 techniques below are a
+hand-maintained subset verified against atlas.mitre.org on 2026-08-16. ATLAS exposes no
+single semantic version to pin here (its knowledge-base and data-format versions differ),
+so before publishing any technique distribution, validate these IDs/names against the
+official ATLAS STIX bundle (github.com/mitre-atlas/atlas-data releases).
 """
 
 from __future__ import annotations
 
 import re
 
+ATLAS_VERSION = "verified-2026-08-16"
+
+# Short, abbreviation-like keywords whose *prefix* collides with unrelated vocabulary.
+# Matched as whole words so they don't sweep in unrelated tokens. Every other keyword
+# keeps leading-boundary (prefix) semantics so morphological variants still match.
+_EXACT_KEYWORDS = frozenset({"dan", "rag", "worm", "persona"})
+
 
 def _matches(keyword: str, token: str) -> bool:
-    """True when *keyword* begins on a word boundary within *token*."""
-    return re.search(r"\b" + re.escape(keyword), token) is not None
+    """True when *keyword* matches *token* on a leading word boundary.
+
+    Keywords in ``_EXACT_KEYWORDS`` require a trailing boundary too (whole-word match).
+    """
+    pattern = r"\b" + re.escape(keyword)
+    if keyword in _EXACT_KEYWORDS:
+        pattern += r"\b"
+    return re.search(pattern, token) is not None
 
 
 def _tokens(threats, categories, tags) -> list[str]:
@@ -94,20 +123,24 @@ _ATLAS_FALLBACK: dict[str, str] = {
 }
 
 
-def map_to_atlas(threats=None, categories=None, tags=None) -> list[tuple[str, str]]:
-    """Return a de-duplicated list of ``(atlas_id, technique_name)`` tuples."""
+def map_to_atlas(threats=None, categories=None, tags=None) -> list[tuple[str, str, str]]:
+    """Return de-duplicated ``(atlas_id, technique_name, method)`` tuples.
+
+    ``method`` is ``"keyword"`` for a keyword-rule match or ``"category-fallback"`` when
+    the coarse category fallback supplied it (only when no keyword matched).
+    """
     tokens = _tokens(threats, categories, tags)
-    matched: list[str] = []
+    matched: dict[str, str] = {}  # atlas_id -> method
     for token in tokens:
         for keyword, atlas_id in _ATLAS_RULES:
-            if _matches(keyword, token) and atlas_id not in matched:
-                matched.append(atlas_id)
+            if atlas_id not in matched and _matches(keyword, token):
+                matched[atlas_id] = "keyword"
     if not matched:
         for cat in categories or []:
             atlas_id = _ATLAS_FALLBACK.get(cat.strip().lower())
             if atlas_id and atlas_id not in matched:
-                matched.append(atlas_id)
-    return [(a, ATLAS_TECHNIQUES[a]) for a in matched]
+                matched[atlas_id] = "category-fallback"
+    return [(a, ATLAS_TECHNIQUES[a], m) for a, m in matched.items()]
 
 
 # --- OWASP Top 10 for LLM Applications (2025) -------------------------------- #
@@ -167,17 +200,20 @@ _OWASP_FALLBACK: dict[str, str] = {
 }
 
 
-def map_to_owasp(threats=None, categories=None, tags=None) -> list[tuple[str, str]]:
-    """Return a de-duplicated list of ``(owasp_id, title)`` tuples."""
+def map_to_owasp(threats=None, categories=None, tags=None) -> list[tuple[str, str, str]]:
+    """Return de-duplicated ``(owasp_id, title, method)`` tuples.
+
+    ``method`` is ``"keyword"`` or ``"category-fallback"`` (see :func:`map_to_atlas`).
+    """
     tokens = _tokens(threats, categories, tags)
-    matched: list[str] = []
+    matched: dict[str, str] = {}  # owasp_id -> method
     for token in tokens:
         for keyword, owasp_id in _OWASP_RULES:
-            if _matches(keyword, token) and owasp_id not in matched:
-                matched.append(owasp_id)
+            if owasp_id not in matched and _matches(keyword, token):
+                matched[owasp_id] = "keyword"
     if not matched:
         for cat in categories or []:
             owasp_id = _OWASP_FALLBACK.get(cat.strip().lower())
             if owasp_id and owasp_id not in matched:
-                matched.append(owasp_id)
-    return [(o, OWASP_LLM[o]) for o in matched]
+                matched[owasp_id] = "category-fallback"
+    return [(o, OWASP_LLM[o], m) for o, m in matched.items()]

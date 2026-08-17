@@ -109,8 +109,15 @@ class StixEngine:
         self._atlas_cache[atlas_id] = ap
         return ap
 
-    def _relationship(self, rel_type: str, src: str, tgt: str, author_id: str) -> stix2.Relationship:
-        return stix2.Relationship(
+    def _relationship(
+        self,
+        rel_type: str,
+        src: str,
+        tgt: str,
+        author_id: str,
+        mapping_method: str | None = None,
+    ) -> stix2.Relationship:
+        kwargs = dict(
             id=_det_id("relationship", rel_type, src, tgt),
             relationship_type=rel_type,
             source_ref=src,
@@ -119,6 +126,12 @@ class StixEngine:
             object_marking_refs=[self.marking.id],
             allow_custom=True,
         )
+        # For ATLAS ``indicates`` edges, record how the technique was derived so a
+        # downstream distribution can separate keyword-inferred from category-fallback.
+        if mapping_method is not None:
+            kwargs["description"] = f"ATLAS technique mapped via {mapping_method}"
+            kwargs["custom_properties"] = {"x_promptprint_mapping_method": mapping_method}
+        return stix2.Relationship(**kwargs)
 
     def _indicator(self, *, ind_id, name, pattern, pattern_type, record, labels, author_id, score, confidence):
         kwargs = dict(
@@ -150,7 +163,7 @@ class StixEngine:
         score = calculate_score(record.severity, record.average_score)
         confidence = calculate_confidence(record.average_score, record.total_ratings, cfg.confidence_saturation_k)
 
-        owasp_ids = [oid for oid, _ in map_to_owasp(record.threats, record.categories, record.tags)] if cfg.enable_owasp_mapping else []
+        owasp_ids = [oid for oid, _, _ in map_to_owasp(record.threats, record.categories, record.tags)] if cfg.enable_owasp_mapping else []
         labels = labels_mod.build_labels(record, cfg, owasp_ids)
 
         prompt_text = record.prompt_text or ""
@@ -200,11 +213,15 @@ class StixEngine:
             indicators.append(nova_indicator)
 
         if cfg.enable_atlas_mapping:
-            for atlas_id, technique_name in map_to_atlas(record.threats, record.categories, record.tags):
+            for atlas_id, technique_name, method in map_to_atlas(
+                record.threats, record.categories, record.tags
+            ):
                 ap = self._atlas_pattern(atlas_id, technique_name)
                 objects.append(ap)
                 for ind in indicators:
-                    objects.append(self._relationship("indicates", ind.id, ap.id, author.id))
+                    objects.append(
+                        self._relationship("indicates", ind.id, ap.id, author.id, mapping_method=method)
+                    )
 
         return objects
 

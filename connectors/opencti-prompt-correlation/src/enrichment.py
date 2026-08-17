@@ -3,38 +3,47 @@
 This module is deliberately free of any OpenCTI / pycti dependency so it can be unit
 tested on its own. It does three things:
 
-- turn a prompt into a portable similarity digest, packaged as an external reference
-  to store on the observable (:func:`digest_external_reference`);
-- read that digest back off an observable's external references
+- compute the promptprint similarity digest for a prompt (:func:`compute_digest`);
+- read the digest stored as a first-class property on an observable
   (:func:`extract_digest`);
 - given a new prompt and a set of candidate ``(id, digest)`` pairs, decide which are
   similar enough to link (:func:`find_similar`).
 
-The connector (``main.py``) wires these into OpenCTI: attach the digest on ingest,
-then create ``related-to`` relationships to prompts whose digests are close.
+The digest is stored as a custom SCO property, ``x_promptprint_digest`` (see
+docs/SPEC.md §7.5), **not** as an external reference: it is a computed property of the
+prompt, not a pointer to an external source. Storing it as a property is what makes it a
+first-class, queryable, shareable attribute of the observable rather than a side-channel.
 """
 
 from __future__ import annotations
 
 from promptprint import compare, digest
 
-SOURCE_NAME = "promptprint"
+#: Custom property name carrying the similarity digest on an ``ai-prompt`` observable.
+DIGEST_PROPERTY = "x_promptprint_digest"
 
 
-def digest_external_reference(value: str) -> dict:
-    """Return an external-reference dict carrying the prompt's similarity digest."""
-    return {
-        "source_name": SOURCE_NAME,
-        "external_id": digest(value),
-        "description": "promptprint lexical similarity digest (ppl1)",
-    }
+def compute_digest(value: str) -> str:
+    """Return the promptprint lexical (``ppl1``) similarity digest for a prompt."""
+    return digest(value)
 
 
-def extract_digest(external_references) -> str | None:
-    """Return the stored digest from an observable's external references, or None."""
-    for ref in external_references or []:
-        if ref.get("source_name") == SOURCE_NAME:
-            return ref.get("external_id")
+def extract_digest(observable) -> str | None:
+    """Return the stored digest from an observable, or ``None``.
+
+    Accepts the observable as a mapping and looks for ``x_promptprint_digest`` at the top
+    level and inside a nested custom-properties container, tolerating the shapes pycti
+    returns for a custom SCO property.
+    """
+    if not observable:
+        return None
+    value = observable.get(DIGEST_PROPERTY)
+    if value:
+        return value
+    for container_key in ("customProperties", "custom_properties", "extensions"):
+        container = observable.get(container_key)
+        if isinstance(container, dict) and container.get(DIGEST_PROPERTY):
+            return container[DIGEST_PROPERTY]
     return None
 
 

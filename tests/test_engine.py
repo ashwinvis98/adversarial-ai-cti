@@ -83,7 +83,7 @@ def test_observable_id_is_deterministic_from_value():
 def test_unvetted_source_gets_review_label():
     objs = StixEngine().build(_record(vetted=False))
     ind = [o for o in objs if o["type"] == "indicator"][0]
-    assert "review-required" in ind["labels"]
+    assert "status.review-required" in ind["labels"]
 
 
 def test_bundle_dedups_shared_objects():
