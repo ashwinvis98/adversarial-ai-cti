@@ -3,6 +3,13 @@
 All notable changes to `adversarial-ai-cti` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.1] - 2026-08-16
+
+### Changed
+- `ATLAS_VERSION` is now the actual MITRE ATLAS release (`2026.07`, tag `v2026.07`)
+  instead of a verification date, so the technique mapping is reproducible against a
+  known ATLAS state.
+
 ## [0.3.0] - 2026-08-16
 
 ### Fixed

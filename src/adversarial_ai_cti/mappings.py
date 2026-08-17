@@ -21,17 +21,18 @@ inferred versus fell back on the coarse category. Unmatched input is left unmapp
 rather than guessed.
 
 ATLAS technique IDs/names are public MITRE data. The 14 techniques below are a
-hand-maintained subset verified against atlas.mitre.org on 2026-08-16. ATLAS exposes no
-single semantic version to pin here (its knowledge-base and data-format versions differ),
-so before publishing any technique distribution, validate these IDs/names against the
-official ATLAS STIX bundle (github.com/mitre-atlas/atlas-data releases).
+hand-maintained subset pinned to the MITRE ATLAS ``2026.07`` release (see
+``ATLAS_VERSION``; github.com/mitre-atlas/atlas-data, tag ``v2026.07``). Validate these
+IDs/names against that release's bundle before publishing any technique distribution.
 """
 
 from __future__ import annotations
 
 import re
 
-ATLAS_VERSION = "verified-2026-08-16"
+# MITRE ATLAS release these technique IDs/names are pinned to
+# (github.com/mitre-atlas/atlas-data, tag v2026.07).
+ATLAS_VERSION = "2026.07"
 
 # Short, abbreviation-like keywords whose *prefix* collides with unrelated vocabulary.
 # Matched as whole words so they don't sweep in unrelated tokens. Every other keyword
