@@ -62,34 +62,23 @@ enrichment connector that applies it inside a platform — computing the digest 
 ingest and drawing `related-to` links between similar prompts — is in
 [`connectors/opencti-prompt-correlation/`](connectors/opencti-prompt-correlation/).
 
-## Repository layout
-
-```
-adversarial-ai-cti/
-├── docs/
-│   ├── SPEC.md               # the STIX 2.1 data model (the contribution)
-│   └── correlation-digest.md # design note for the semantic-correlation digest
-├── src/adversarial_ai_cti/   # reference implementation
-├── connectors/
-│   └── opencti-prompt-correlation/  # enrichment connector: digest + similarity links
-├── examples/                 # runnable example (record -> bundle)
-└── tests/                    # mapping and engine tests
-```
-
 ## Non-goals
 
 - Not a runtime detection engine — detection logic belongs in tools built for it (NOVA).
 - Not a new sharing format — it uses STIX 2.1 and existing community extensions.
 - Ships code, not a corpus. Bring your own sources.
 
-## Limitations
+## Design choices
 
-- Automated ATLAS/OWASP mapping is word-boundary keyword matching; it leaves ambiguous
-  input unmapped rather than guessing.
-- The correlation digest ships a dependency-free **lexical** default (`plm1`) and an
-  experimental **semantic** variant (`pls1`/`pls1c`); the semantic digest recovers most
-  reworded attacks but trails the raw-embedding ceiling (see the design note and
-  [`promptlsh` RESULTS](https://github.com/ashwinvis98/promptlsh/blob/main/RESULTS.md)).
+- **Confident-only mapping.** ATLAS/OWASP mapping uses word-boundary keyword matching and
+  leaves ambiguous input unmapped rather than guessing. Every mapping records how it was
+  derived (`x_aacti_mapping_method`: `keyword` vs `category-fallback`), so a consumer can
+  weight inferred mappings against explicit ones.
+- **The digest is a portable correlation key, not a detector.** Correlation ships a
+  dependency-free lexical default (`plm1`); an embedding-backed semantic variant
+  (`pls1`/`pls1c`) recovers more reworded attacks, measured in
+  [`promptlsh` RESULTS](https://github.com/ashwinvis98/promptlsh/blob/main/RESULTS.md).
+  Both are exchangeable digests, not runtime detection.
 
 ## Prior art and attribution
 
@@ -103,13 +92,10 @@ Builds on public work and does not claim others' contributions:
 - **[Push Security](https://pushsecurity.com/blog/the-pyramid-of-pain-in-the-ai-era)**
   — the Pyramid of Pain in the AI era.
 - **[0DIN](https://0din.ai)** (Mozilla) — a jailbreak threat feed and the
-  [`prompt-toolkit`](https://github.com/0din-ai/prompt-toolkit) SDK, which already does
-  prompt-similarity **LSH signatures**, a jailbreak classifier, and TLP-classified feed
-  reports. This project overlaps their model on similarity signatures and TLP scoring and
-  is **complementary, not competing**: 0DIN ships a vendor SDK tied to 0DIN's feed; this
-  ships a **vendor-neutral STIX 2.1 representation** any platform can ingest from any
-  source. A vendor SDK cannot, by construction, be the cross-vendor interchange format —
-  that gap is what this project fills.
+  [`prompt-toolkit`](https://github.com/0din-ai/prompt-toolkit) SDK (prompt-similarity LSH
+  signatures, a jailbreak classifier, TLP-classified reports). Complementary to this
+  project: 0DIN ships a vendor SDK and feed; this defines a vendor-neutral STIX 2.1
+  representation any platform can ingest from any source.
 
 ## License
 
