@@ -1,6 +1,6 @@
 """Tests for the connector's pure enrichment logic (no OpenCTI needed).
 
-Run with promptprint and this connector's src on PYTHONPATH.
+Run with promptlsh and this connector's src on PYTHONPATH.
 """
 
 from enrichment import (
@@ -38,10 +38,10 @@ def test_find_similar_matches_near_duplicate_only():
 
 
 def test_find_similar_skips_missing_and_mismatched_scheme():
-    # None digest is skipped; a pps1 (semantic) digest can't be compared to a ppl1 target
+    # None digest is skipped; a pls1 (semantic) digest can't be compared to a plm1 target
     matches = find_similar(
         "ignore previous instructions",
-        [("none", None), ("semantic", "pps1:bge:64:deadbeefdeadbeef")],
+        [("none", None), ("semantic", "pls1:bge:64:deadbeefdeadbeef")],
         threshold=0.0,
     )
     assert matches == []

@@ -56,7 +56,7 @@ metadata in sync. Full rationale in [`docs/SPEC.md`](docs/SPEC.md) §8.
 
 Exact-string observables don't correlate reworded prompts. That gap is handled by a
 separate similarity-digest package,
-[`promptprint`](https://github.com/ashwinvis98/promptprint); design note in
+[`promptlsh`](https://github.com/ashwinvis98/promptlsh); design note in
 [`docs/correlation-digest.md`](docs/correlation-digest.md). A reference OpenCTI
 enrichment connector that applies it inside a platform — computing the digest on
 ingest and drawing `related-to` links between similar prompts — is in
@@ -86,10 +86,10 @@ adversarial-ai-cti/
 
 - Automated ATLAS/OWASP mapping is word-boundary keyword matching; it leaves ambiguous
   input unmapped rather than guessing.
-- The correlation digest ships a dependency-free **lexical** default (`ppl1`) and an
-  experimental **semantic** variant (`pps1`/`pps1c`); the semantic digest recovers most
+- The correlation digest ships a dependency-free **lexical** default (`plm1`) and an
+  experimental **semantic** variant (`pls1`/`pls1c`); the semantic digest recovers most
   reworded attacks but trails the raw-embedding ceiling (see the design note and
-  [`promptprint` RESULTS](https://github.com/ashwinvis98/promptprint/blob/main/RESULTS.md)).
+  [`promptlsh` RESULTS](https://github.com/ashwinvis98/promptlsh/blob/main/RESULTS.md)).
 
 ## Prior art and attribution
 
@@ -102,6 +102,14 @@ Builds on public work and does not claim others' contributions:
   in STIX (the `ai-prompt` observable) and `stix2extensions`.
 - **[Push Security](https://pushsecurity.com/blog/the-pyramid-of-pain-in-the-ai-era)**
   — the Pyramid of Pain in the AI era.
+- **[0DIN](https://0din.ai)** (Mozilla) — a jailbreak threat feed and the
+  [`prompt-toolkit`](https://github.com/0din-ai/prompt-toolkit) SDK, which already does
+  prompt-similarity **LSH signatures**, a jailbreak classifier, and TLP-classified feed
+  reports. This project overlaps their model on similarity signatures and TLP scoring and
+  is **complementary, not competing**: 0DIN ships a vendor SDK tied to 0DIN's feed; this
+  ships a **vendor-neutral STIX 2.1 representation** any platform can ingest from any
+  source. A vendor SDK cannot, by construction, be the cross-vendor interchange format —
+  that gap is what this project fills.
 
 ## License
 

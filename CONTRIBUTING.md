@@ -19,10 +19,10 @@ pytest -q
 Both must pass. CI runs the same on Python 3.10–3.12.
 
 The connector under `connectors/opencti-prompt-correlation/` has its own pure-logic tests
-that need `promptprint` on the path:
+that need `promptlsh` on the path:
 
 ```bash
-PYTHONPATH="../promptprint/src:connectors/opencti-prompt-correlation/src" \
+PYTHONPATH="../promptlsh/src:connectors/opencti-prompt-correlation/src" \
   python connectors/opencti-prompt-correlation/tests/test_enrichment.py
 ```
 

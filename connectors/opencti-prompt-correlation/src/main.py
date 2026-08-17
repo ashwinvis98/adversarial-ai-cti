@@ -2,8 +2,8 @@
 
 On each `ai-prompt` observable it enriches, the connector:
 
-1. computes the promptprint similarity digest and stores it on the observable as the
-   custom property ``x_promptprint_digest`` (a first-class, queryable attribute);
+1. computes the promptlsh similarity digest and stores it on the observable as the
+   custom property ``x_promptlsh_digest`` (a first-class, queryable attribute);
 2. reads the digests already stored on other `ai-prompt` observables;
 3. creates a `related-to` relationship to each one whose digest is similar enough
    (>= a configurable threshold).
@@ -106,13 +106,13 @@ class PromptCorrelationConnector:
 
         # 3. link the similar ones. Confidence carries the digest similarity (0-100) so an
         #    analyst can tell a 0.72 near-match from a 0.99 duplicate. Every relationship
-        #    description is prefixed "promptprint similarity" for rollback (see README).
+        #    description is prefixed "promptlsh similarity" for rollback (see README).
         for candidate_id, score in matches:
             self.helper.api.stix_core_relationship.create(
                 fromId=observable["id"],
                 toId=candidate_id,
                 relationship_type="related-to",
-                description=f"promptprint similarity {score:.2f}",
+                description=f"promptlsh similarity {score:.2f}",
                 confidence=int(score * 100),
             )
 

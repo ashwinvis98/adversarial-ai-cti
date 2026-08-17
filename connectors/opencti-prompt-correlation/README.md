@@ -1,11 +1,11 @@
-# OpenCTI connector: prompt correlation (promptprint)
+# OpenCTI connector: prompt correlation (promptlsh)
 
 An OpenCTI **internal-enrichment** connector that makes reworded prompt attacks
 correlate. When an `ai-prompt` observable is enriched, it:
 
-1. computes a [`promptprint`](https://github.com/ashwinvis98/promptprint)
+1. computes a [`promptlsh`](https://github.com/ashwinvis98/promptlsh)
    similarity digest and stores it on the observable as the custom property
-   `x_promptprint_digest` (a first-class, queryable attribute — see SPEC.md §7.5);
+   `x_promptlsh_digest` (a first-class, queryable attribute — see SPEC.md §7.5);
 2. reads the digests already stored on other `ai-prompt` observables;
 3. creates a `related-to` relationship to each one whose digest is similar enough
    (>= a configurable threshold), with the similarity score in the description.
@@ -16,7 +16,7 @@ and starts forming clusters you can pivot through.
 ## How it works
 
 ```
-ai-prompt observable ──enrich──▶ compute digest ──▶ store as x_promptprint_digest
+ai-prompt observable ──enrich──▶ compute digest ──▶ store as x_promptlsh_digest
                                         │
                                         ▼
                          compare against other prompts' digests
@@ -59,9 +59,9 @@ Plus the standard OpenCTI connector variables (`OPENCTI_URL`, `OPENCTI_TOKEN`,
 These are deliberate choices, not defaults to accept blindly. Tune them for your feed.
 
 - **Threshold (`0.7`).** The digest similarity above which two prompts are linked. On
-  `ppl1` (lexical MinHash) 0.7 corresponds to strong shared phrasing; lower it toward
+  `plm1` (lexical MinHash) 0.7 corresponds to strong shared phrasing; lower it toward
   0.5 to catch looser rewording at the cost of false links. Calibrate against your own
-  corpus — see [`promptprint` RESULTS.md](https://github.com/ashwinvis98/promptprint/blob/main/RESULTS.md).
+  corpus — see [`promptlsh` RESULTS.md](https://github.com/ashwinvis98/promptlsh/blob/main/RESULTS.md).
 - **Per-object edge cap (`max_edges = 25`).** Without a cap, enriching one member of a
   family of *N* near-identical prompts creates *N-1* edges, and doing so for every
   member is O(N²) relationships — a hairball that helps no one. The cap keeps only the
@@ -76,9 +76,9 @@ These are deliberate choices, not defaults to accept blindly. Tune them for your
 - **Confidence carries the score.** Each relationship's `confidence` is the digest
   similarity × 100, so a 0.72 near-match and a 0.99 duplicate are distinguishable in the
   UI and in filters.
-- **Rollback.** The digest lives in the `x_promptprint_digest` property and every
-  relationship description is prefixed `promptprint similarity`. To undo the connector's
-  effect, clear `x_promptprint_digest` on the observables and delete the `related-to`
+- **Rollback.** The digest lives in the `x_promptlsh_digest` property and every
+  relationship description is prefixed `promptlsh similarity`. To undo the connector's
+  effect, clear `x_promptlsh_digest` on the observables and delete the `related-to`
   relationships carrying that description prefix. Nothing else is mutated.
 
 - **Candidate selection & recall.** Each enrichment compares against the
@@ -95,7 +95,7 @@ These are deliberate choices, not defaults to accept blindly. Tune them for your
 
 Comparability caveat: the stored digest is only meaningful to compare against other
 digests produced with the **same scheme and parameters** (and, for the semantic
-`pps1c` variant, the same embedding model and reference mean). Mixed-scheme candidates
+`pls1c` variant, the same embedding model and reference mean). Mixed-scheme candidates
 are skipped rather than mis-scored.
 
 ## Run
@@ -108,8 +108,8 @@ docker run --rm --env-file .env opencti-prompt-correlation
 ## Tests
 
 ```bash
-# with promptprint and this connector's src on the path
-PYTHONPATH="../promptprint/src:connectors/opencti-prompt-correlation/src" \
+# with promptlsh and this connector's src on the path
+PYTHONPATH="../promptlsh/src:connectors/opencti-prompt-correlation/src" \
   python connectors/opencti-prompt-correlation/tests/test_enrichment.py
 ```
 

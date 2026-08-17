@@ -306,14 +306,14 @@ as many unrelated items. To correlate near-duplicates, a producer MAY attach a
 
 | Property | Type | Notes |
 |---|---|---|
-| `x_promptprint_digest` | string | A `promptprint` similarity digest of `value`. |
+| `x_promptlsh_digest` | string | A `promptlsh` similarity digest of `value`. |
 
 - The digest is a *computed property of the prompt*, so it belongs on the observable as a
   first-class property — **not** in `external_references`, which are pointers to external
   sources, not carriers of a computed value.
-- Formats: lexical `ppl1:<num_perm>:<hex>...`; semantic `pps1:<model_id>:<n_bits>:<hex>`
-  (and `pps1c:<model_id>:<ref_id>:<n_bits>:<hex>` centered). See the
-  [`promptprint`](https://github.com/ashwinvis98/promptprint) package. Only digests of the
+- Formats: lexical `plm1:<num_perm>:<hex>...`; semantic `pls1:<model_id>:<n_bits>:<hex>`
+  (and `pls1c:<model_id>:<ref_id>:<n_bits>:<hex>` centered). See the
+  [`promptlsh`](https://github.com/ashwinvis98/promptlsh) package. Only digests of the
   same scheme and parameters — and, for semantic, the same model and reference mean — are
   comparable; the format encodes those identities so a mismatch fails loudly.
 - A consumer clusters observables whose digests are within a configurable threshold,

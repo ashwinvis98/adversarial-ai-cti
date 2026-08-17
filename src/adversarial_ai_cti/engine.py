@@ -19,7 +19,7 @@ from __future__ import annotations
 import uuid
 
 import stix2
-from stix2.properties import StringProperty
+from stix2.properties import ExtensionsProperty, StringProperty
 
 from . import labels as labels_mod
 from .mappings import map_to_atlas, map_to_owasp
@@ -34,11 +34,19 @@ _AI_PROMPT_EXTENSION = "extension-definition--3557a8d5-4e04-5f87-a7af-d48a1384d3
 
 @stix2.CustomObservable(
     "ai-prompt",
-    [("value", StringProperty(required=True))],
+    [
+        ("value", StringProperty(required=True)),
+        ("extensions", ExtensionsProperty(spec_version="2.1")),
+    ],
     ["value"],
 )
 class AIPrompt:
-    """Custom SCO representing an AI prompt (see docs/SPEC.md §7)."""
+    """Custom SCO representing an AI prompt (see docs/SPEC.md §7).
+
+    Carries the dogesec ``ai-prompt`` extension-definition reference as a STIX 2.1
+    ``new-sco`` extension (SPEC §7.1), so consumers recognise it as the extension SCO.
+    The id is still derived from ``value`` only, so ingestion stays idempotent.
+    """
 
 
 _NS = uuid.UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8")  # RFC 4122 URL namespace
@@ -130,7 +138,7 @@ class StixEngine:
         # downstream distribution can separate keyword-inferred from category-fallback.
         if mapping_method is not None:
             kwargs["description"] = f"ATLAS technique mapped via {mapping_method}"
-            kwargs["custom_properties"] = {"x_promptprint_mapping_method": mapping_method}
+            kwargs["custom_properties"] = {"x_aacti_mapping_method": mapping_method}
         return stix2.Relationship(**kwargs)
 
     def _indicator(self, *, ind_id, name, pattern, pattern_type, record, labels, author_id, score, confidence):
@@ -170,6 +178,7 @@ class StixEngine:
 
         observable = AIPrompt(
             value=prompt_text,
+            extensions={_AI_PROMPT_EXTENSION: {"extension_type": "new-sco"}},
             object_marking_refs=[self.marking.id],
             custom_properties={
                 "x_opencti_score": score,

@@ -3,13 +3,13 @@
 This module is deliberately free of any OpenCTI / pycti dependency so it can be unit
 tested on its own. It does three things:
 
-- compute the promptprint similarity digest for a prompt (:func:`compute_digest`);
+- compute the promptlsh similarity digest for a prompt (:func:`compute_digest`);
 - read the digest stored as a first-class property on an observable
   (:func:`extract_digest`);
 - given a new prompt and a set of candidate ``(id, digest)`` pairs, decide which are
   similar enough to link (:func:`find_similar`).
 
-The digest is stored as a custom SCO property, ``x_promptprint_digest`` (see
+The digest is stored as a custom SCO property, ``x_promptlsh_digest`` (see
 docs/SPEC.md §7.5), **not** as an external reference: it is a computed property of the
 prompt, not a pointer to an external source. Storing it as a property is what makes it a
 first-class, queryable, shareable attribute of the observable rather than a side-channel.
@@ -17,21 +17,21 @@ first-class, queryable, shareable attribute of the observable rather than a side
 
 from __future__ import annotations
 
-from promptprint import compare, digest
+from promptlsh import compare, digest
 
 #: Custom property name carrying the similarity digest on an ``ai-prompt`` observable.
-DIGEST_PROPERTY = "x_promptprint_digest"
+DIGEST_PROPERTY = "x_promptlsh_digest"
 
 
 def compute_digest(value: str) -> str:
-    """Return the promptprint lexical (``ppl1``) similarity digest for a prompt."""
+    """Return the promptlsh lexical (``plm1``) similarity digest for a prompt."""
     return digest(value)
 
 
 def extract_digest(observable) -> str | None:
     """Return the stored digest from an observable, or ``None``.
 
-    Accepts the observable as a mapping and looks for ``x_promptprint_digest`` at the top
+    Accepts the observable as a mapping and looks for ``x_promptlsh_digest`` at the top
     level and inside a nested custom-properties container, tolerating the shapes pycti
     returns for a custom SCO property.
     """
