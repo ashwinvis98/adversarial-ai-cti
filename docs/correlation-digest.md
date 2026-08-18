@@ -30,6 +30,10 @@ correlation across parties who cannot share the prompt itself.
 - Both are **deterministic** (fixed hash + seed; the semantic variant also fixes the
   embedding model and, for `pls1c`, a shared reference mean), which is what lets
   independent parties compare digests without a shared service.
+- The semantic digest **carries its comparability identity inline** —
+  `pls1:<model_id>:<n_bits>:<hex>` and `pls1c:<model_id>:<ref_id>:<n_bits>:<hex>` — and
+  `compare()` raises on a mismatched model or reference mean, so comparability is enforced
+  by the digest format rather than relying on out-of-band agreement.
 
 ## How it would attach to STIX
 
@@ -47,8 +51,8 @@ answers several of the original open questions:
 - **Redundancy is real.** The lexical digest collapses >half of a public corpus
   (HackAPrompt) as exact duplicates, plus more as near-duplicates.
 - **Cross-org correlation works on shared source material** — exchanging only digests
-  finds ~4.4x the overlap that exact matching does. A genuinely cross-corpus test (not a
-  split of one corpus) is still outstanding.
+  finds ~2.9x the overlap that exact matching does (35.1% vs 12.2%). A genuinely
+  cross-corpus test (not a split of one corpus) is still outstanding.
 - **The semantic digest is deterministic** and recovers most reworded attacks, but the
   compact form costs recall versus the full embedding; comparability requires a shared
   model and reference mean.
@@ -57,7 +61,5 @@ answers several of the original open questions:
 
 - Threshold selection is corpus-dependent; the connector defaults (0.7, see its README)
   are a starting point, not a calibrated value for every feed.
-- The `pls1c` digest string does not yet carry the model / reference-mean identity
-  inline, so centered-digest comparability currently relies on out-of-band agreement.
 - Adversarial robustness: the scheme is public, so a motivated adversary can evade it
   (word reorder defeats the lexical digest). This is a triage aid, not a security control.
