@@ -38,9 +38,14 @@ bundle = engine.build_bundle([record])   # -> a valid STIX 2.1 Bundle
 
 ## The design decision worth arguing: two indicators per prompt
 
-Prior art models each prompt with a *single* indicator — either a STIX pattern (exact
-match) or a NOVA pattern (behavioural). This project emits **both** over the same
-observable:
+Prior art models each prompt with a *single* indicator. Notably, dogesec first modelled
+prompts with a STIX pattern and then **deliberately revised to a NOVA-only indicator**,
+on the grounds that a STIX pattern only expresses what literal text to match whereas a
+NOVA rule expresses how to reason about prompt behaviour — the more durable of the two.
+That argument is correct, and it is the stronger position for detection.
+
+This project still emits **both** over the same observable, for one narrow reason: an
+exact-match pattern is a cheap, engine-free retrieval key. The tradeoff is explicit:
 
 | | STIX-pattern indicator | NOVA-pattern indicator |
 |---|---|---|
@@ -61,6 +66,16 @@ separate similarity-digest package,
 enrichment connector that applies it inside a platform — computing the digest on
 ingest and drawing `related-to` links between similar prompts — is in
 [`connectors/opencti-prompt-correlation/`](connectors/opencti-prompt-correlation/).
+
+## Why STIX and not MISP?
+
+MISP is the established open interchange format for threat intelligence and it already ships
+an [`ai-chat-prompt` object template](https://github.com/MISP/misp-objects/tree/main/objects/ai-chat-prompt),
+so a MISP representation of prompt attacks is entirely feasible. The choice of STIX 2.1 here
+is about *shape*: the relationship graph — a prompt as an observable with indicators, ATLAS
+technique mappings, markings and `related-to` edges hanging off it — plus native ingestion in
+OpenCTI and other STIX platforms. It is a preference, not a claim that MISP cannot do the job.
+The similarity digest is a plain serialisable property, so either format can carry it.
 
 ## Non-goals
 

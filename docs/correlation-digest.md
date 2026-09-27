@@ -50,9 +50,21 @@ answers several of the original open questions:
 
 - **Redundancy is real.** The lexical digest collapses >half of a public corpus
   (HackAPrompt) as exact duplicates, plus more as near-duplicates.
-- **Cross-org correlation works on shared source material** — exchanging only digests
-  finds ~2.9x the overlap that exact matching does (35.1% vs 12.2%). A genuinely
-  cross-corpus test (not a split of one corpus) is still outstanding.
+- **Fuzzy beats exact on shared source material** — on two halves of one corpus, exchanging
+  only digests finds ~23 percentage points more overlap than exact matching (35.1% vs 12.2%).
+  This is the easy case: both halves come from the same competition, so they share wording by
+  construction. It is **not** a cross-organisation rate.
+- **The genuine cross-feed test has now been run, and it is more sobering.** Across five
+  independently collected public feeds, the *lexical* digest finds essentially nothing
+  (≤0.07% — independent feeds do not share wording). *Semantic* correlation is conditional:
+  ~10–21% between two independent corpora of real human jailbreaks, near zero between feeds
+  that collect different kinds of artifact (jailbreak wrappers vs bare harmful requests), and
+  highest (25–39%) only between datasets that were built from one another — which makes those
+  positive controls rather than findings. See
+  [`promptlsh` RESULTS §2b](https://github.com/ashwinvis98/promptlsh/blob/main/RESULTS.md).
+  **Implication for this connector:** digest-based `related-to` edges are reliable for
+  collapsing redundancy *within* a feed; treat cross-feed correlation as opportunistic, and
+  expect it only between feeds collecting the same kind of artifact.
 - **The semantic digest is deterministic** and recovers most reworded attacks, but the
   compact form costs recall versus the full embedding; comparability requires a shared
   model and reference mean.

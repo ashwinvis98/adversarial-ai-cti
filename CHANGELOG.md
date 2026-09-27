@@ -3,6 +3,26 @@
 All notable changes to `adversarial-ai-cti` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+- **`docs/correlation-digest.md`: corrected the cross-org framing.** The ~2.9x figure was
+  measured on two halves of one corpus and is now scoped as a same-corpus fuzzy-vs-exact
+  result. The genuine cross-feed test has since been run (see
+  [`promptlsh` RESULTS §2b](https://github.com/ashwinvis98/promptlsh/blob/main/RESULTS.md)):
+  lexical cross-feed correlation is ~0, and semantic correlation is conditional — ~10–21%
+  between independent corpora of real human jailbreaks, near zero between feeds collecting
+  different artifact types. Added the operational implication: digest `related-to` edges are
+  reliable for collapsing redundancy *within* a feed; cross-feed correlation is opportunistic.
+- **README: the two-indicator section now credits dogesec's revision properly.** It previously
+  said prior art uses "a single indicator" without noting that dogesec deliberately moved from
+  a STIX pattern to a NOVA-only indicator, and why that argument is right.
+
+### Added
+- **README: "Why STIX and not MISP?"** MISP already ships an `ai-chat-prompt` object template,
+  so a MISP representation is feasible; the STIX choice is about the relationship graph and
+  TIP-native ingestion, not a claim that MISP cannot carry this.
+
 ## [0.3.1] - 2026-08-16
 
 ### Changed
