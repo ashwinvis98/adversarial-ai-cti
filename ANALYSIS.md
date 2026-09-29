@@ -11,11 +11,72 @@ prompt text emitted — counts only.
 **Reproduce:**
 
 ```bash
-python eval/prompt_technique_survey.py                       # loads from HuggingFace
+python eval/corpus_construction_check.py                     # how the corpus was built - FIRST
+python eval/prompt_technique_survey.py                       # the technique breakdown
 python eval/prompt_technique_survey.py --json out.json       # machine-readable
 ```
 
+Run the construction check first. It establishes what the corpus was scored against and what
+each task affords, and those findings are constraints on every distribution the survey
+produces. §0 below is its output.
+
 Last run 2026-09-28. ATLAS release `2026.07`, OWASP LLM edition `2025`.
+
+---
+
+---
+
+## 0. Read this before reading any distribution below
+
+Two properties of HackAPrompt constrain everything in this file. Both are derived by
+`eval/corpus_construction_check.py` from columns in the dataset itself, and both were missed
+on the first pass through this analysis.
+
+**Every successful attack is prompt injection by construction.** On ten of the eleven levels
+`expected_completion` is one fixed string — `I have been PWNED` — identical across all 578,857
+rows on those levels. The objective is to make the model emit it in defiance of its
+instructions, so every success is `AML.T0051`. Level 2 is the exception: 62,900 distinct
+scoring targets, one secret key per session, which makes it `AML.T0056` Extract LLM System
+Prompt. No winner in this corpus falls outside the taxonomy.
+
+That makes the corpus unusually valuable, because the correct label is known in advance and
+the signature detector's output can be scored against it:
+
+| | prompts | share of 18,479 |
+|---|---|---|
+| ground truth — every winner is `AML.T0051` | 18,479 | 100% |
+| any named sub-technique detectable | 4,058 | 22.0% |
+| resolves to any ATLAS or OWASP entry | 2,785 | 15.1% |
+| **pipeline actually labelled it `AML.T0051`** | **2,114** | **11.4%** |
+
+**11.4% recall, 88.6% false negative, against uncontested ground truth.** This is the single
+most transferable number here: it bounds what keyword attribution over prompt text recovers.
+
+**The technique distribution is mostly a description of the challenges.** Each level's task
+is recoverable from the `prompt` column, and the tasks predict the signatures:
+
+| signature | total | on levels whose task asks for it | share | levels |
+|---|---|---|---|---|
+| translation | 1,020 | 953 | **93.4%** | 1, 2, 3, 6 |
+| unicode | 120 | 105 | **87.5%** | 9, 10 |
+| roleplay | 529 | 217 | 41.0% | 0, 8 |
+| output format | 345 | 132 | 38.3% | 0, 6, 7 |
+
+Levels 1–3 are Spanish-translation tasks; level 6 embeds `translate: he sido pwned remove
+punctuation`; level 9 splits input character-by-character with slashes; level 10 is
+emoji-only; level 0 is a persona bot; level 8 is a nested storyteller jailbreak. So
+"translation is the second most common technique" is a fact about four challenges, not about
+attacker preference.
+
+**Do not read the miss set's length as evidence.** The detector's median is 180 chars when it
+fires and 94 when it does not — but a control pattern with no relationship to technique (the
+word `the`) gives 193 and 61, a wider gap. Detection rate rises monotonically with length for
+both (1.9% → 42.5% for the detector, 3.5% → 91.8% for the control). The asymmetry is a
+property of substring matching and supports no conclusion about the prompts.
+
+**The scoring did not penalise length.** `corr(token_count, score) = +0.114`; mean score rises
+from 47,018 in the shortest token decile to 88,371 in the longest. Do not claim a token
+penalty explains short winners.
 
 ---
 
@@ -54,6 +115,9 @@ this describes what *worked*, not what was tried.
 
 **18,479 unique successful prompts** out of 601,757 total submissions.
 
+All 18,479 are `AML.T0051` by construction — see §0. The figures below describe what the
+signature detector could recover, not which attacks fit the taxonomy.
+
 | | |
 |---|---|
 | at least one technique signature | **4,058 (22.0%)** |
@@ -61,9 +125,12 @@ this describes what *worked*, not what was tried.
 | total technique detections | 4,501 |
 | mean techniques per prompt | 0.24 |
 | median length, with a signature | 180 chars |
-| median length, without | **94 chars** |
+| median length, without | 94 chars (an artifact — see §0) |
 
 ### Signature distribution
+
+Cross-reference §0 before reading this as attacker behaviour: 93.4% of `translation` and 87.5%
+of `unicode` sit on levels whose own task asks for them.
 
 | signature | prompts | per prompt | of detections |
 |---|---|---|---|
@@ -104,6 +171,12 @@ this describes what *worked*, not what was tried.
 
 Levels run 0 (easiest) to 10 (hardest). **Level 10 recorded no successful submissions at
 all** and does not appear below.
+
+These are **eleven different applications with eleven different defences**, not one defence
+being strengthened, so the downward trend in signature rate is not a statement about
+difficulty. Eight of the ten solved levels have a task that asks for one of the signatures
+(§0); the two that don't — level 4, a search engine, and level 5, a grammar assistant — sit
+mid-table at 15.3% and 15.6%.
 
 | level | successful prompts | signature rate | top signatures |
 |---|---|---|---|
@@ -226,10 +299,13 @@ magnitudes transfer to live traffic.
 
 ## 4. Limitations
 
-- **The detector is lexical and has low recall.** It finds a signature in 22% of successful
-  HackAPrompt prompts. The other 78% either use a technique phrased in a way no pattern
-  catches, or use no named technique at all. Treat every distribution here as a distribution
-  *within the detected subset*, not within all successful attacks.
+- **The detector's recall is 11.4% against known ground truth** (§0). Treat every distribution
+  here as a distribution *within the detected subset*, which is a fifth of the corpus.
+- **Most of the distribution is challenge design, not attacker preference** (§0). This is the
+  dominant limitation and it applies to every table below §0.
+- **Task affordance is a judgement.** Which scaffold keywords count as a task "asking for" a
+  technique is a list in `eval/corpus_construction_check.py`. It is visible and arguable, and
+  the concentration figures move if you disagree with it.
 - **It can be fooled.** A prompt that merely discusses base64 counts as base64. Patterns are
   conservative to limit this, at the cost of further recall.
 - **These are competitions, not production traffic.** Participants optimise against a scoring
