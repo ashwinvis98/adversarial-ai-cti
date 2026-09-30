@@ -20,8 +20,13 @@ correlation across parties who cannot share the prompt itself.
 - The digest is implemented as a separate package,
   [`promptlsh`](https://github.com/ashwinvis98/promptlsh), so it stays
   useful outside this project.
-- The **default is lexical** (`plm1`, MinHash over word-shingles). It catches
+- The **default is lexical** (`plm2`, MinHash over word-shingles). It catches
   copy-paste-and-tweak rewording, not full semantic paraphrase, and is dependency-free.
+  `plm2` canonicalises NFKC → strip format characters → case fold, and carries its
+  parameters on the wire so mismatched settings are rejected rather than scored. The
+  earlier `plm1` scheme is frozen: it applied no Unicode normalisation, so NFC and NFD
+  forms of the same text produced different digests. See
+  [`SPEC-digest.md`](https://github.com/ashwinvis98/promptlsh/blob/main/SPEC-digest.md).
 - A **semantic variant** (`pls1`/`pls1c`, an embedding-derived SimHash digest behind the
   same compare interface) is implemented and evaluated on public data. It recovers the
   majority of heavily-reworded attacks — better than lexical — but a compact digest

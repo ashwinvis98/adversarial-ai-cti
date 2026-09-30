@@ -311,7 +311,8 @@ as many unrelated items. To correlate near-duplicates, a producer MAY attach a
 - The digest is a *computed property of the prompt*, so it belongs on the observable as a
   first-class property — **not** in `external_references`, which are pointers to external
   sources, not carriers of a computed value.
-- Formats: lexical `plm1:<num_perm>:<hex>...`; semantic `pls1:<model_id>:<n_bits>:<hex>`
+- Formats: lexical `plm2:<num_perm>:<shingle_size>:<seed>:<hex>...` (current) or
+  `plm1:<num_perm>:<hex>...` (frozen legacy); semantic `pls1:<model_id>:<n_bits>:<hex>`
   (and `pls1c:<model_id>:<ref_id>:<n_bits>:<hex>` centered). See the
   [`promptlsh`](https://github.com/ashwinvis98/promptlsh) package. Only digests of the
   same scheme and parameters — and, for semantic, the same model and reference mean — are

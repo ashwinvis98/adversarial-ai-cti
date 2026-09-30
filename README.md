@@ -90,7 +90,9 @@ The similarity digest is a plain serialisable property, so either format can car
   derived (`x_aacti_mapping_method`: `keyword` vs `category-fallback`), so a consumer can
   weight inferred mappings against explicit ones.
 - **The digest is a portable correlation key, not a detector.** Correlation ships a
-  dependency-free lexical default (`plm1`); an embedding-backed semantic variant
+  dependency-free lexical default (`plm2`, specified in
+  [`SPEC-digest.md`](https://github.com/ashwinvis98/promptlsh/blob/main/SPEC-digest.md)
+  with conformance vectors; `plm1` is frozen); an embedding-backed semantic variant
   (`pls1`/`pls1c`) recovers more reworded attacks, measured in
   [`promptlsh` RESULTS](https://github.com/ashwinvis98/promptlsh/blob/main/RESULTS.md).
   Both are exchangeable digests, not runtime detection.
